@@ -81,7 +81,6 @@ const DetailsPage = () => {
           ))}
         </ul>
       </>
-    // </Container>
   );
 };
 

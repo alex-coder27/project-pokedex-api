@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
-import { getPokemonList, getPokemonDetails } from '../../api/pokedexApi'; 
+import { useNavigate } from 'react-router-dom';
+import { getPokemonList, getPokemonDetails } from '../../api/pokedexApi';
+import CardPokemon from '../../components/CardPokemon/index';
+import { Container, PokemonGrid, LoadMoreButton, Header } from './style';
+import ThemeTogglerButton from '../../components/ThemeToggler';
 
 const POKEMONS_PER_PAGE = 10;
 
 const HomePage = () => {
+  const navigate = useNavigate();
   const [pokemons, setPokemons] = useState([]);
   const [nextOffset, setNextOffset] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -15,25 +20,28 @@ const HomePage = () => {
       const nextOffsetValue = offset + POKEMONS_PER_PAGE;
       setNextOffset(nextOffsetValue);
       if (!listData.next) {
-          setHasMore(false);
+        setHasMore(false);
       }
-      const detailedPokemonsPromises = listData.results.map(item => 
+      const detailedPokemonsPromises = listData.results.map(item =>
         getPokemonDetails(item.url)
       );
       const detailedPokemons = await Promise.all(detailedPokemonsPromises);
       setPokemons(prevPokemons => {
-            const existingIds = new Set(prevPokemons.map(p => p.id));
-            const uniqueNewPokemons = detailedPokemons.filter(newP => 
-                newP && newP.id && !existingIds.has(newP.id)
-            );
-            return [...prevPokemons, ...uniqueNewPokemons];
-        });
+        const existingIds = new Set(prevPokemons.map(p => p.id));
+        const uniqueNewPokemons = detailedPokemons.filter(newP =>
+          newP && newP.id && !existingIds.has(newP.id)
+        );
+        return [...prevPokemons, ...uniqueNewPokemons];
+      });
 
     } catch (error) {
       console.error("Failed to fetch pokemons:", error);
     } finally {
       setIsLoading(false);
     }
+  };
+  const handleCardClick = (pokemonName) => {
+    navigate(`/pokemon/${pokemonName}`);
   };
 
   useEffect(() => {
@@ -45,28 +53,26 @@ const HomePage = () => {
   };
 
   return (
-      <>
-          {pokemons.map(pokemon => (
-            <div 
-              key={pokemon.id || pokemon.name} 
-              onClick={() => {
-                console.log(`Ta funcionando para ir na pagina details do pokemon: ${pokemon.name}`);
-              }}
-            >
-              <img 
-                src={pokemon.sprites.front_default} 
-                alt={pokemon.name} 
-              />
-              <p>{pokemon.name}</p>
-            </div>
+   <Container>
+        <Header>
+            <ThemeTogglerButton />
+        </Header>
+        <PokemonGrid>
+          {pokemons.map((pokemon, index) => (
+            <CardPokemon 
+              key={`${pokemon.id}-${index}`} 
+              pokemon={pokemon}
+              onCardClick={handleCardClick}
+            />
           ))}
-        
+        </PokemonGrid>
+
         {hasMore && (
-            <button onClick={handleLoadMore} disabled={isLoading}>
+            <LoadMoreButton onClick={handleLoadMore} disabled={isLoading}>
               {isLoading ? 'Loading...' : 'Load More'}
-            </button>
+            </LoadMoreButton>
         )}
-      </>
+    </Container>
   );
 };
 

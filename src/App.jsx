@@ -1,9 +1,9 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-
-import { ThemeProviderComponent } from './context/ThemeContext.jsx';
+import { BrowserRouter, Routes, Route } from 'react-router-dom'; 
+import { ThemeProviderComponent } from './context/ThemeContext.jsx'; 
+import GlobalStyle from './styles/GlobalStyles.js'; 
 
 import HomePage from './pages/Home/index.jsx';
-import DetailsPage from './pages/Details/index.jsx';
+import DetailsPage from './pages/Details/index.jsx'; 
 
 function App() {
   return (
