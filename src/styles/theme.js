@@ -10,6 +10,7 @@ export const lightTheme = {
   primary: baseColors.red,      
   cardBackground: '#f5f5f5',
   backgroundContainer: '#e9e5e5ff',
+  seta: '#757575ff',
 };
 
 export const darkTheme = {
@@ -18,4 +19,5 @@ export const darkTheme = {
   primary: baseColors.red,      
   cardBackground: '#272343',    
   backgroundContainer: '#1A193C',
+  seta: '#101025ff',
 };

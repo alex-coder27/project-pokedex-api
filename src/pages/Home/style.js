@@ -44,11 +44,3 @@ export const LoadMoreButton = styled.button`
     opacity: 0.5;
   }
 `;
-
-export const Header = styled.header`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 10px;
-  margin: 0 auto;
-`;

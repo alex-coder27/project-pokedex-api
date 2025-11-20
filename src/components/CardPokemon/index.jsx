@@ -1,8 +1,7 @@
 import { CardWrapper, ImageContainer, NameContainer, Name, TypesContainer, TypeBadge, typeColors, IdBadge } from './style';
 
 const CardPokemon = ({ pokemon, onCardClick }) => {
-
-    const imageUrl = pokemon.sprites.front_default;
+    const imageUrl = pokemon.sprites.other.dream_world.front_default;
     const typeNames = pokemon.types.map(typeObj => typeObj.type.name);
     const glowColorsArray = typeNames.map(name => typeColors[name] || '#777777'); 
     const glowColorsString = glowColorsArray.join(',');

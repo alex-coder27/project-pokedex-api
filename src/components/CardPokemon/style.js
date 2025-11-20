@@ -30,15 +30,14 @@ export const ImageContainer = styled.div`
   margin-bottom: 10px;
   position: relative;
   
-  /* 🟢 ESTADO NORMAL: SEM SHADOW! */
   box-shadow: none; 
   
   border-radius: 50%;
   background-color: ${props => props.theme.backgroundContainer};
   
   img {
-    width: 100%;
-    height: auto;
+    max-width: 70%;
+    height: 70%;
   }
 `;
 
@@ -114,6 +113,10 @@ export const CardWrapper = styled.li`
             0 0 20px ${props => props.$glowColors.split(',')[0]},
             0 0 40px ${props => props.$glowColors.split(',')[0]};
         transition: box-shadow 0.3s ease-out;
+        img {
+          transform: scale(1.3);
+          transition: transform 0.3s ease-out;
+        }
     };
     ${IdBadge} {
         box-shadow: 

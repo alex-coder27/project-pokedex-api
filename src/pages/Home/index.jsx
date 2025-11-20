@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPokemonList, getPokemonDetails } from '../../api/pokedexApi';
 import CardPokemon from '../../components/CardPokemon/index';
-import { Container, PokemonGrid, LoadMoreButton, Header } from './style';
-import ThemeTogglerButton from '../../components/ThemeToggler';
+import Header from '../../components/Header/index';
+import { Container, PokemonGrid, LoadMoreButton } from './style';
 
 const POKEMONS_PER_PAGE = 10;
 
@@ -54,9 +54,7 @@ const HomePage = () => {
 
   return (
    <Container>
-        <Header>
-            <ThemeTogglerButton />
-        </Header>
+        <Header />
         <PokemonGrid>
           {pokemons.map((pokemon, index) => (
             <CardPokemon 
