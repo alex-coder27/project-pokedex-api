@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getPokemonList, getPokemonDetails } from '../../api/pokedexApi';
+import { getPokemonList, getPokemonDetailsByUrl } from '../../api/pokedexApi';
 import CardPokemon from '../../components/CardPokemon/index';
 import Header from '../../components/Header/index';
+import LoadingPokemon from '../../assets/loading.png';
 import { Container, PokemonGrid, LoadMoreButton } from './style';
 
 const POKEMONS_PER_PAGE = 10;
@@ -23,7 +24,7 @@ const HomePage = () => {
         setHasMore(false);
       }
       const detailedPokemonsPromises = listData.results.map(item =>
-        getPokemonDetails(item.url)
+        getPokemonDetailsByUrl(item.url)
       );
       const detailedPokemons = await Promise.all(detailedPokemonsPromises);
       setPokemons(prevPokemons => {
@@ -67,7 +68,7 @@ const HomePage = () => {
 
         {hasMore && (
             <LoadMoreButton onClick={handleLoadMore} disabled={isLoading}>
-              {isLoading ? 'Loading...' : 'Load More'}
+              <img src={LoadingPokemon} alt='Buttom Loading' />
             </LoadMoreButton>
         )}
     </Container>

@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 export const ToggleButton = styled.button`
-  padding: 8px 16px;
+  padding: 0 16px;
   cursor: pointer;
   background: none;
   border: none;

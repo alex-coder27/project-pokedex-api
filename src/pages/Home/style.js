@@ -24,23 +24,22 @@ export const PokemonGrid = styled.ul`
 
 export const LoadMoreButton = styled.button`
   display: block;
-  margin: 40px auto;
-  padding: 12px 25px;
-  background-color: ${props => props.theme.primary};
-  color: ${props => props.theme.white}; 
-  border: none;
-  border-radius: 8px;
+  width: 300px;
+  height: auto;
+  margin: 0 auto;
   cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
+  background-color: transparent;
   transition: opacity 0.2s;
-
-  &:hover:not(:disabled) {
-    opacity: 0.9;
+  img {
+    width: 100%;
   }
-  
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
+    &:hover:not(:disabled) {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 1;
   }
 `;

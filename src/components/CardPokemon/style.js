@@ -5,16 +5,12 @@ export const IdBadge = styled.span`
   bottom: 5px;    
   left: -5px;   
   z-index: 10;
-  
   width: 40px;
   height: 40px;
-  
   display: flex;
   justify-content: center;
   align-items: center; 
-  
   border-radius: 50%; 
-  
   background-color: ${props => props.theme.backgroundContainer};
   color: ${props => props.theme.text};
   font-weight: bold;
@@ -29,12 +25,9 @@ export const ImageContainer = styled.div`
   width: 170px;
   margin-bottom: 10px;
   position: relative;
-  
   box-shadow: none; 
-  
   border-radius: 50%;
   background-color: ${props => props.theme.backgroundContainer};
-  
   img {
     max-width: 70%;
     height: 70%;
@@ -65,7 +58,7 @@ export const TypesContainer = styled.div`
 
 export const TypeBadge = styled.span`
   background-color: ${props => props.color}; 
-  color: white;
+  color: ${props => props.theme.text};
   padding: 8px 15px;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -86,7 +79,6 @@ export const CardWrapper = styled.li`
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); 
-
   &:hover {
     transform: translateY(-2px);
     box-shadow:
@@ -127,24 +119,3 @@ export const CardWrapper = styled.li`
     };
   }
 `;
-
-export const typeColors = {
-  normal: '#A8A77A',
-  fire: '#EE8130',
-  water: '#6390F0',
-  electric: '#F7D02C',
-  grass: '#7AC74C',
-  ice: '#96D9D6',
-  fighting: '#C22E28',
-  poison: '#A33EA1',
-  ground: '#E2BF65',
-  flying: '#A98FF3',
-  psychic: '#F95587',
-  bug: '#A6B91A',
-  rock: '#B6A136',
-  ghost: '#735797',
-  dragon: '#6F35FC',
-  dark: '#705746',
-  steel: '#B7B7CE',
-  fairy: '#D685AD',
-};

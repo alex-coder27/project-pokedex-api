@@ -5,7 +5,7 @@ export const DetailsHeader = styled.header`
   justify-content: space-between;
   align-items: center;
   background-color: ${props => props.theme.cardBackground};
-  padding: 15px 30px;
+  padding: 5px 30px;
   margin-bottom: 20px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   img {

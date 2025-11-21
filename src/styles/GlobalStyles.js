@@ -7,6 +7,7 @@ const GlobalStyle = createGlobalStyle`
     box-sizing: border-box;
     font-family: sans-serif;
     list-style: none;
+    border: none;
   }
 
   body {

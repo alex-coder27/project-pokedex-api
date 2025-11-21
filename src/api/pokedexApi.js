@@ -18,12 +18,17 @@ export const getPokemonList = async (offset = 0, limit = 10) => {
   }
 };
 
-export const getPokemonDetails = async (url) => {
+export const getPokemonDetailsByUrl = async (url) => {
     try {
         const response = await axios.get(url);
         return response.data;
     } catch (error) {
-        console.error(`Error retrieving Pokémon details in ${url}:`, error);
+        console.error(`Error retrieving data from ${url}:`, error); 
         throw error;
     }
-}
+};
+
+export const fetchPokemonDetails = async (name) => {
+    const url = `${POKEDEX_URL}/${name}`;
+    return getPokemonDetailsByUrl(url); 
+};
