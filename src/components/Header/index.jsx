@@ -1,13 +1,15 @@
 import { useNavigate } from 'react-router-dom';
-import { DetailsHeader, BackButton } from './style';
-import ThemeTogglerButton from '../ThemeToggler/index';
-import { useTheme } from '../../context/ThemeContext'; 
+import { DetailsHeader, BackButton, ToggleButton } from './style';
+import { useTheme } from '../../context/ThemeContext';
 import ArrowBackWhite from '../../assets/seta-branca.png';
 import ArrowBackBlack from '../../assets/seta-preta.png';
+import ChandelureNormal from '../../assets/chandelure-normal.png';
+import ChandelureApagado from '../../assets/chandelure-apagado.png';
 
 const Header = ({ showBackButton = false }) => {
     const navigate = useNavigate();
-    const { isDarkMode } = useTheme();
+    const { isDarkMode, toggleTheme } = useTheme(); 
+    const iconSrc = isDarkMode ? ChandelureApagado : ChandelureNormal;
     const ArrowBackIcon = isDarkMode ? ArrowBackBlack : ArrowBackWhite;
     const handleGoBack = () => {
         navigate('/');
@@ -22,7 +24,12 @@ const Header = ({ showBackButton = false }) => {
             ) : (
                 <div style={{ width: '2rem' }} />
             )}
-            <ThemeTogglerButton />
+            <ToggleButton onClick={toggleTheme}>
+                <img
+                    src={iconSrc}
+                    alt={isDarkMode ? 'Tema Escuro' : 'Tema Claro'}
+                />
+            </ToggleButton>
         </DetailsHeader>
     );
 };

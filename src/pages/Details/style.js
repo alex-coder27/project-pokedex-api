@@ -43,6 +43,14 @@ export const Sidebar = styled.aside`
   }
 `;
 
+export const PokemonImage = styled.img`
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+`;
+
 export const MainContent = styled.main`
   flex: 1;
   background-color: ${props => props.theme.cardBackground};

@@ -1,76 +1,168 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getPokemonList, getPokemonDetailsByUrl } from '../../api/pokedexApi';
+import { TYPE_COLORS, isLightColor } from '../../utils/typeColors';
+import { usePokemonData } from '../../hooks/usePokemonData';
 import CardPokemon from '../../components/CardPokemon/index';
 import Header from '../../components/Header/index';
 import LoadingPokemon from '../../assets/loading.png';
-import { Container, PokemonGrid, LoadMoreButton } from './style';
+import {
+  Container,
+  PokemonGrid,
+  LoadMoreButton,
+  SearchContainer,
+  SearchInput,
+  FilterBarContainer,
+  TypeSelect,
+  TypeSelectWrapper,
+  TypeOption,
+  MessageParagraph
+} from './style';
 
-const POKEMONS_PER_PAGE = 10;
+const ALL_TYPES = Object.keys(TYPE_COLORS);
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const [pokemons, setPokemons] = useState([]);
-  const [nextOffset, setNextOffset] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const fetchPokemons = async (offset) => {
-    setIsLoading(true);
-    try {
-      const listData = await getPokemonList(offset, POKEMONS_PER_PAGE);
-      const nextOffsetValue = offset + POKEMONS_PER_PAGE;
-      setNextOffset(nextOffsetValue);
-      if (!listData.next) {
-        setHasMore(false);
-      }
-      const detailedPokemonsPromises = listData.results.map(item =>
-        getPokemonDetailsByUrl(item.url)
-      );
-      const detailedPokemons = await Promise.all(detailedPokemonsPromises);
-      setPokemons(prevPokemons => {
-        const existingIds = new Set(prevPokemons.map(p => p.id));
-        const uniqueNewPokemons = detailedPokemons.filter(newP =>
-          newP && newP.id && !existingIds.has(newP.id)
-        );
-        return [...prevPokemons, ...uniqueNewPokemons];
-      });
+  const {
+    pokemons,
+    isLoading,
+    hasMore,
+    searchTerm,
+    searchedPokemon,
+    searchError,
+    selectedType,
+    setSearchTerm,
+    setSearchedPokemon,
+    setSearchError,
+    setIsLoading,
+    fetchPokemonDetails,
+    handleLoadMore,
+    handleTypeFilter,
+  } = usePokemonData();
 
-    } catch (error) {
-      console.error("Failed to fetch pokemons:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const selectedTypeColor = selectedType ? TYPE_COLORS[selectedType] : '';
+
   const handleCardClick = (pokemonName) => {
     navigate(`/pokemon/${pokemonName}`);
   };
 
-  useEffect(() => {
-    fetchPokemons(0);
-  }, []);
+  const handleSearchChange = (event) => {
+    const term = event.target.value;
+    setSearchTerm(term);
+    setSearchedPokemon(null);
+    setSearchError(null);
 
-  const handleLoadMore = () => {
-    fetchPokemons(nextOffset);
   };
 
-  return (
-   <Container>
-        <Header />
-        <PokemonGrid>
-          {pokemons.map((pokemon, index) => (
-            <CardPokemon 
-              key={`${pokemon.id}-${index}`} 
-              pokemon={pokemon}
-              onCardClick={handleCardClick}
-            />
-          ))}
-        </PokemonGrid>
+  const handleSearchSubmit = async (event) => {
+    if (event.key !== 'Enter') return;
 
-        {hasMore && (
-            <LoadMoreButton onClick={handleLoadMore} disabled={isLoading}>
-              <img src={LoadingPokemon} alt='Buttom Loading' />
-            </LoadMoreButton>
-        )}
+    const term = searchTerm.toLowerCase().trim();
+
+    if (term.length === 0) {
+      setSearchedPokemon(null);
+      setSearchError(null);
+      return;
+    }
+    const localMatch = pokemons.find(p => p.name.toLowerCase() === term);
+    if (localMatch) {
+      setSearchedPokemon(localMatch);
+      setSearchError(null);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const data = await fetchPokemonDetails(term);
+      setSearchedPokemon(data);
+      setSearchError(null);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        setSearchError(`Pokémon "${term}" não encontrado.`);
+      } else {
+        setSearchError(null);
+      }
+      setSearchedPokemon(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  let pokemonsToDisplay = pokemons;
+
+  if (searchedPokemon) {
+    pokemonsToDisplay = [searchedPokemon];
+  } else if (searchTerm.length > 0) {
+    pokemonsToDisplay = pokemons.filter(pokemon =>
+      pokemon.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+
+  return (
+    <Container>
+      <Header />
+      <FilterBarContainer>
+        <SearchContainer>
+          <SearchInput
+            type="text"
+            placeholder="Buscar Pokémon pelo nome..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            onKeyDown={handleSearchSubmit}
+            disabled={isLoading && !searchedPokemon}
+          />
+        </SearchContainer>
+        <TypeSelectWrapper $typeColor={selectedTypeColor}>
+          <TypeSelect
+            onChange={handleTypeFilter}
+            value={selectedType || 'all'}
+            $typeColor={selectedTypeColor}
+          >
+            {ALL_TYPES.map((type) => {
+              const color = TYPE_COLORS[type];
+              const textColor = isLightColor(color) ? '#000000' : '#ffffff';
+              return (
+                <TypeOption
+                  key={type}
+                  value={type}
+                  $bgColor={color}
+                  $textColor={textColor}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </TypeOption>
+              );
+            })}
+          </TypeSelect>
+        </TypeSelectWrapper>
+      </FilterBarContainer>
+      {isLoading && pokemonsToDisplay.length === 0 && (
+        <MessageParagraph>Carregando...</MessageParagraph>
+      )}
+
+      {searchError && (
+        <MessageParagraph>
+          {searchError}
+        </MessageParagraph>
+      )}
+
+      {searchTerm.length > 0 && pokemonsToDisplay.length === 0 && !isLoading && !searchError && (
+        <MessageParagraph>
+          Nenhum Pokémon encontrado que corresponda aos critérios de busca.
+        </MessageParagraph>
+      )}
+
+      <PokemonGrid>
+        {pokemonsToDisplay.map((pokemon, index) => (
+          <CardPokemon
+            key={`${pokemon.id}-${pokemon.name}-${index}`}
+            pokemon={pokemon}
+            onCardClick={handleCardClick}
+          />
+        ))}
+      </PokemonGrid>
+      {hasMore && searchTerm.length === 0 && (
+        <LoadMoreButton onClick={handleLoadMore} disabled={isLoading}>
+          <img src={LoadingPokemon} alt='Buttom Loading' />
+        </LoadMoreButton>
+      )}
     </Container>
   );
 };

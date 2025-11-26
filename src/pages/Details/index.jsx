@@ -9,6 +9,7 @@ import {
   DetailsWrapper,
   MainContent,
   Sidebar,
+  PokemonImage,
   TypeContainer,
   StatContainer,
   StatBar,
@@ -35,24 +36,24 @@ const DetailsPage = () => {
     setHoveredAbilityName(abilityName);
 
     if (abilityDescriptions[abilityName] && abilityDescriptions[abilityName] !== "Carregando descrição...") return;
-    
+
     setAbilityDescriptions(prev => ({
-        ...prev,
-        [abilityName]: 'Carregando descrição...',
+      ...prev,
+      [abilityName]: 'Carregando descrição...',
     }));
-    
+
     try {
-      const data = await getPokemonDetailsByUrl(abilityUrl); 
+      const data = await getPokemonDetailsByUrl(abilityUrl);
       const englishEntry = data.effect_entries.find(entry => entry.language.name === 'en');
-      const description = englishEntry 
-            ? englishEntry.effect 
-            : 'Descrição não encontrada.';
-      
+      const description = englishEntry
+        ? englishEntry.effect
+        : 'Descrição não encontrada.';
+
       setAbilityDescriptions(prev => ({
         ...prev,
         [abilityName]: description,
       }));
-      
+
     } catch (error) {
       console.error("Failed to fetch ability description:", error);
       setAbilityDescriptions(prev => ({
@@ -93,10 +94,9 @@ const DetailsPage = () => {
       <Header showBackButton={true} />
       <DetailsWrapper>
         <Sidebar>
-          <img
+          <PokemonImage
             src={pokemonData.sprites.other.dream_world.front_default}
             alt={pokemonData.name}
-            style={{ width: '100%', maxWidth: '200px' }}
           />
 
           <DetailTitle $typeColor={mainColor}>Stats</DetailTitle>
@@ -113,9 +113,9 @@ const DetailsPage = () => {
           <DetailTitle $typeColor={mainColor}>Types</DetailTitle>
           <TypeContainer>
             {pokemonData.types.map((typeObj) => (
-              <TypeItem 
+              <TypeItem
                 key={typeObj.type.name}
-                $typeColor={TYPE_COLORS[typeObj.type.name] || mainColor} 
+                $typeColor={TYPE_COLORS[typeObj.type.name] || mainColor}
               >
                 {typeObj.type.name.toUpperCase()}
               </TypeItem>
@@ -126,7 +126,7 @@ const DetailsPage = () => {
             <AbilityList>
               {pokemonData.abilities.map(abilityObj => {
                 const abilityName = abilityObj.ability.name;
-                const description = abilityDescriptions[abilityName] || "Passe o mouse para carregar..."; 
+                const description = abilityDescriptions[abilityName] || "Passe o mouse para carregar...";
                 return (
                   <AbilityItem
                     key={abilityName}
@@ -136,7 +136,7 @@ const DetailsPage = () => {
                   >
                     {abilityName.replace('-', ' ')}
                     {hoveredAbilityName === abilityName && (
-                        <AbilityTooltip description={description} />
+                      <AbilityTooltip description={description} />
                     )}
                   </AbilityItem>
                 );
