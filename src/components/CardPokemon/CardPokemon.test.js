@@ -54,7 +54,6 @@ describe('CardPokemon', () => {
   it('deve chamar onCardClick quando o card for clicado', () => {
     renderCardPokemon();
 
-    // Clica em qualquer parte do card que contenha o nome do Pokémon
     const cardElement = screen.getByText('bulbasaur').parentElement;
     fireEvent.click(cardElement);
 
@@ -117,7 +116,6 @@ describe('CardPokemon', () => {
     renderCardPokemon(pokemonWithoutDreamWorld);
 
     const image = screen.getByAltText('bulbasaur');
-    // Verifica se a imagem existe, mesmo com src null
     expect(image).toBeInTheDocument();
   });
 
@@ -169,7 +167,6 @@ describe('CardPokemon', () => {
   it('deve ser acessível via teclado e ARIA', () => {
     renderCardPokemon();
 
-    // Verifica se todos os elementos principais estão no documento
     expect(screen.getByText('bulbasaur')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByAltText('bulbasaur')).toBeInTheDocument();

@@ -4,14 +4,12 @@ import { BrowserRouter } from 'react-router-dom';
 import Header from './index';
 import * as ThemeContext from '../../context/ThemeContext';
 
-// Mock do useTheme
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
 }));
 
-// Mock das imagens - usando o fileMock.js global
 jest.mock('../../assets/seta-branca.png', () => 'mocked-seta-branca.png');
 jest.mock('../../assets/seta-preta.png', () => 'mocked-seta-preta.png');
 jest.mock('../../assets/chandelure-normal.png', () => 'mocked-chandelure-normal.png');
@@ -51,7 +49,6 @@ describe('Header', () => {
     );
   };
 
-  // Testes de funcionalidade (mantenha estes)
   it('deve renderizar o header com botão de tema', () => {
     renderHeader();
     const themeButton = screen.getByRole('button', { name: /tema claro|tema escuro/i });
@@ -85,8 +82,7 @@ describe('Header', () => {
     fireEvent.click(themeButton);
     expect(mockToggleTheme).toHaveBeenCalledTimes(1);
   });
-
-  // Testes focados na lógica em vez de implementação específica
+  
   it('deve mostrar textos alternativos corretos', () => {
     renderHeader(true, false);
     expect(screen.getByAltText('Voltar página')).toBeInTheDocument();
