@@ -53,16 +53,29 @@ const renderHomePage = () => {
 };
 
 describe('HomePage', () => {
+  jest.useFakeTimers();
+
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    mockUsePokemonData.fetchPokemonDetails = jest.fn().mockResolvedValue({ 
+      id: 25, 
+      name: 'pikachu', 
+      types: [{ type: { name: 'electric' } }] 
+    });
+    
     usePokemonData.mockReturnValue(mockUsePokemonData);
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
   });
 
   it('deve renderizar o componente corretamente', () => {
     renderHomePage();
 
     expect(screen.getByTestId('header')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Buscar Pokémon pelo nome...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)')).toBeInTheDocument();
     expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
@@ -85,15 +98,83 @@ describe('HomePage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/pokemon/bulbasaur');
   });
 
-  it('deve chamar setSearchTerm ao digitar na busca', () => {
+  it('deve atualizar localSearchTerm ao digitar na busca', () => {
     renderHomePage();
 
-    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome...');
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
     fireEvent.change(searchInput, { target: { value: 'pikachu' } });
 
-    expect(mockUsePokemonData.setSearchTerm).toHaveBeenCalledWith('pikachu');
-    expect(mockUsePokemonData.setSearchedPokemon).toHaveBeenCalledWith(null);
-    expect(mockUsePokemonData.setSearchError).toHaveBeenCalledWith(null);
+    expect(searchInput.value).toBe('pikachu');
+  });
+
+  it('deve chamar setSearchTerm após debounce', async () => {
+    renderHomePage();
+
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    
+    fireEvent.change(searchInput, { target: { value: 'pikachu' } });
+
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockUsePokemonData.setSearchTerm).toHaveBeenCalledWith('pikachu');
+    });
+  });
+
+  it('deve chamar debouncedSearch para termos com mais de 3 caracteres', async () => {
+    renderHomePage();
+
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    
+    fireEvent.change(searchInput, { target: { value: 'pika' } });
+
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockUsePokemonData.fetchPokemonDetails).toHaveBeenCalledWith('pika');
+    });
+  });
+
+  it('deve não chamar fetchPokemonDetails para termos com menos de 3 caracteres', async () => {
+    renderHomePage();
+
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    
+    fireEvent.change(searchInput, { target: { value: 'pi' } });
+
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    expect(mockUsePokemonData.fetchPokemonDetails).not.toHaveBeenCalled();
+  });
+
+  it('deve mostrar mensagem para termos curtos', async () => {
+    usePokemonData.mockReturnValue({
+      ...mockUsePokemonData,
+      pokemons: [],
+    });
+
+    renderHomePage();
+
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    fireEvent.change(searchInput, { target: { value: 'pi' } });
+    
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Digite pelo menos 3 letras para buscar na API.')).toBeInTheDocument();
+    });
   });
 
   it('deve chamar handleTypeFilter ao selecionar um tipo', () => {
@@ -126,7 +207,7 @@ describe('HomePage', () => {
     expect(loadMoreButton).toBeDisabled();
   });
 
-  it('deve mostrar mensagem de carregamento', () => {
+  it('deve mostrar mensagem de "Buscando..." durante loading', () => {
     usePokemonData.mockReturnValue({
       ...mockUsePokemonData,
       isLoading: true,
@@ -135,10 +216,14 @@ describe('HomePage', () => {
 
     renderHomePage();
 
-    expect(screen.getByText('Carregando...')).toBeInTheDocument();
+    expect(screen.getByText('Buscando...')).toBeInTheDocument();
   });
 
-  it('deve mostrar mensagem de erro na busca', () => {
+  it('deve mostrar mensagem de erro na busca', async () => {
+    mockUsePokemonData.fetchPokemonDetails = jest.fn().mockRejectedValue({
+      response: { status: 404 }
+    });
+
     usePokemonData.mockReturnValue({
       ...mockUsePokemonData,
       searchError: 'Pokémon "invalid" não encontrado.',
@@ -146,56 +231,92 @@ describe('HomePage', () => {
 
     renderHomePage();
 
-    expect(screen.getByText('Pokémon "invalid" não encontrado.')).toBeInTheDocument();
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    
+    fireEvent.change(searchInput, { target: { value: 'invalid' } });
+
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Pokémon "invalid" não encontrado.')).toBeInTheDocument();
+    });
   });
 
-  it('deve mostrar mensagem quando nenhum Pokémon é encontrado na busca', () => {
+  it('deve mostrar mensagem quando nenhum Pokémon é encontrado na busca', async () => {
+    renderHomePage();
+
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    fireEvent.change(searchInput, { target: { value: 'unknown' } });
+    
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Nenhum Pokémon encontrado.')).toBeInTheDocument();
+    });
+  });
+
+  it('deve filtrar pokémons localmente durante a busca', async () => {
+    renderHomePage();
+
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    fireEvent.change(searchInput, { target: { value: 'char' } });
+
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+    
+    await waitFor(() => {
+      const cards = screen.getAllByTestId('card-pokemon');
+      expect(cards).toHaveLength(1);
+      expect(screen.getByText('charmander')).toBeInTheDocument();
+    });
+  });
+
+  it('deve mostrar apenas o Pokémon buscado quando searchedPokemon existe', async () => {
     usePokemonData.mockReturnValue({
       ...mockUsePokemonData,
-      searchTerm: 'unknown',
+      searchedPokemon: { id: 25, name: 'pikachu', types: [{ type: { name: 'electric' } }] },
       pokemons: [],
     });
 
     renderHomePage();
 
-    expect(screen.getByText('Nenhum Pokémon encontrado que corresponda aos critérios de busca.')).toBeInTheDocument();
-  });
-
-  it('deve filtrar pokémons localmente durante a busca', () => {
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      searchTerm: 'char',
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    fireEvent.change(searchInput, { target: { value: 'pikachu' } });
+    
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
     });
 
-    renderHomePage();
-
-    const cards = screen.getAllByTestId('card-pokemon');
-    expect(cards).toHaveLength(1);
-    expect(screen.getByText('charmander')).toBeInTheDocument();
+    await waitFor(() => {
+      const cards = screen.getAllByTestId('card-pokemon');
+      expect(cards).toHaveLength(1);
+      expect(screen.getByText('pikachu')).toBeInTheDocument();
+    });
   });
 
-  it('deve mostrar apenas o Pokémon buscado quando searchedPokemon existe', () => {
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      searchedPokemon: { id: 25, name: 'pikachu', types: [{ type: { name: 'electric' } }] },
-    });
-
+  it('deve não mostrar botão loadMore durante busca', async () => {
     renderHomePage();
 
-    const cards = screen.getAllByTestId('card-pokemon');
-    expect(cards).toHaveLength(1);
-    expect(screen.getByText('pikachu')).toBeInTheDocument();
-  });
-
-  it('deve não mostrar botão loadMore durante busca', () => {
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      searchTerm: 'pikachu',
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    fireEvent.change(searchInput, { target: { value: 'pikachu' } });
+    
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
     });
 
-    renderHomePage();
-
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
   });
 
   it('deve não mostrar botão loadMore quando não há mais pokémons', () => {
@@ -235,165 +356,28 @@ describe('HomePage', () => {
     expect(typeSelect).toBeInTheDocument();
   });
 
-  it('deve lidar com busca por Enter key', async () => {
-    const mockFetchPokemonDetails = jest.fn().mockResolvedValue({ id: 25, name: 'pikachu' });
-    
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      searchTerm: 'pikachu',
-      fetchPokemonDetails: mockFetchPokemonDetails,
-    });
-
+  it('deve limpar busca quando termo for vazio', async () => {
     renderHomePage();
 
-    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome...');
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
     
+    fireEvent.change(searchInput, { target: { value: 'pikachu' } });
+
     await act(async () => {
-      fireEvent.keyDown(searchInput, { key: 'Enter' });
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
     });
 
-    expect(mockFetchPokemonDetails).toHaveBeenCalledWith('pikachu');
-  });
-
-  it('deve não fazer busca se termo estiver vazio ao pressionar Enter', async () => {
-    const mockFetchPokemonDetails = jest.fn();
-    
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      searchTerm: '',
-      fetchPokemonDetails: mockFetchPokemonDetails,
-    });
-
-    renderHomePage();
-
-    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome...');
-    
-    await act(async () => {
-      fireEvent.keyDown(searchInput, { key: 'Enter' });
-    });
-
-    expect(mockFetchPokemonDetails).not.toHaveBeenCalled();
-  });
-
-  it('deve encontrar Pokémon localmente ao pressionar Enter', async () => {
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      searchTerm: 'bulbasaur',
-    });
-
-    renderHomePage();
-
-    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome...');
-    
-    await act(async () => {
-      fireEvent.keyDown(searchInput, { key: 'Enter' });
-    });
-
-    expect(mockUsePokemonData.setSearchedPokemon).toHaveBeenCalledWith(mockPokemons[0]);
-    expect(mockUsePokemonData.setSearchError).toHaveBeenCalledWith(null);
-  });
-
-  it('deve lidar com erro na busca por Enter key', async () => {
-    const mockFetchPokemonDetails = jest.fn().mockRejectedValue({
-      response: { status: 404 }
-    });
-    
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      searchTerm: 'invalid',
-      fetchPokemonDetails: mockFetchPokemonDetails,
-    });
-
-    renderHomePage();
-
-    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome...');
-    
-    await act(async () => {
-      fireEvent.keyDown(searchInput, { key: 'Enter' });
-    });
-
-    expect(mockUsePokemonData.setSearchError).toHaveBeenCalledWith('Pokémon "invalid" não encontrado.');
-    expect(mockUsePokemonData.setSearchedPokemon).toHaveBeenCalledWith(null);
-  });
-
-  it('deve lidar com erro genérico na busca por Enter key', async () => {
-    const mockFetchPokemonDetails = jest.fn().mockRejectedValue(new Error('Network error'));
-    
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      searchTerm: 'pikachu',
-      fetchPokemonDetails: mockFetchPokemonDetails,
-    });
-
-    renderHomePage();
-
-    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome...');
-    
-    await act(async () => {
-      fireEvent.keyDown(searchInput, { key: 'Enter' });
-    });
-
-    expect(mockUsePokemonData.setSearchError).toHaveBeenCalledWith(null);
-    expect(mockUsePokemonData.setSearchedPokemon).toHaveBeenCalledWith(null);
-  });
-
-  it('deve ignorar outras teclas que não seja Enter', () => {
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      searchTerm: 'pikachu',
-    });
-
-    renderHomePage();
-
-    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome...');
-    
-    fireEvent.keyDown(searchInput, { key: 'Escape' });
-
-    expect(mockUsePokemonData.fetchPokemonDetails).not.toHaveBeenCalled();
-  });
-
-  it('deve desabilitar input durante loading sem searchedPokemon', () => {
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      isLoading: true,
-      searchedPokemon: null,
-    });
-
-    renderHomePage();
-
-    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome...');
-    expect(searchInput).toBeDisabled();
-  });
-
-  it('deve não desabilitar input durante loading com searchedPokemon', () => {
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      isLoading: true,
-      searchedPokemon: { id: 25, name: 'pikachu' },
-    });
-
-    renderHomePage();
-
-    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome...');
-    expect(searchInput).not.toBeDisabled();
-  });
-
-  it('deve limpar busca quando termo for vazio', () => {
-    usePokemonData.mockReturnValue({
-      ...mockUsePokemonData,
-      searchTerm: 'pikachu',
-      searchedPokemon: { id: 25, name: 'pikachu' },
-      searchError: null,
-    });
-
-    renderHomePage();
-
-    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome...');
     fireEvent.change(searchInput, { target: { value: '' } });
 
-    expect(mockUsePokemonData.setSearchTerm).toHaveBeenCalledWith('');
-    expect(mockUsePokemonData.setSearchedPokemon).toHaveBeenCalledWith(null);
-    expect(mockUsePokemonData.setSearchError).toHaveBeenCalledWith(null);
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockUsePokemonData.setSearchTerm).toHaveBeenCalledWith('');
+    });
   });
 
   it('deve usar key única para cada Pokémon na lista', () => {
@@ -404,5 +388,66 @@ describe('HomePage', () => {
     cards.forEach((card, index) => {
       expect(card).toBeInTheDocument();
     });
+  });
+
+  it('deve desabilitar input durante loading', () => {
+    usePokemonData.mockReturnValue({
+      ...mockUsePokemonData,
+      isLoading: true,
+    });
+
+    renderHomePage();
+
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    expect(searchInput).toBeDisabled();
+  });
+
+  it('deve não desabilitar input quando não está loading', () => {
+    usePokemonData.mockReturnValue({
+      ...mockUsePokemonData,
+      isLoading: false,
+    });
+
+    renderHomePage();
+
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    expect(searchInput).not.toBeDisabled();
+  });
+
+  it('deve cancelar debounce ao limpar busca rapidamente', async () => {
+    renderHomePage();
+
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    
+    fireEvent.change(searchInput, { target: { value: 'pika' } });
+    
+    fireEvent.change(searchInput, { target: { value: '' } });
+    
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+    
+    await waitFor(() => {
+      expect(mockUsePokemonData.setSearchTerm).toHaveBeenCalledWith('');
+      const calls = mockUsePokemonData.setSearchTerm.mock.calls.flat();
+      expect(calls.includes('pika')).toBe(false); 
+    });
+  });
+
+  it('deve buscar localmente mesmo para termos curtos', async () => {
+    renderHomePage();
+
+    const searchInput = screen.getByPlaceholderText('Buscar Pokémon pelo nome... (mín. 3 letras)');
+    fireEvent.change(searchInput, { target: { value: 'ch' } });
+    
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    const cards = screen.getAllByTestId('card-pokemon');
+    expect(cards).toHaveLength(1);
+    expect(screen.getByText('charmander')).toBeInTheDocument();
   });
 });

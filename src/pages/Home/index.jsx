@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 import { TYPE_COLORS, isLightColor } from '../../utils/typeColors';
 import { usePokemonData } from '../../hooks/usePokemonData';
 import CardPokemon from '../../components/CardPokemon/index';
@@ -38,7 +39,72 @@ const HomePage = () => {
     handleTypeFilter,
   } = usePokemonData();
 
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+
   const selectedTypeColor = selectedType ? TYPE_COLORS[selectedType] : '';
+
+  const debouncedSearch = useCallback(
+    (term) => {
+      const trimmedTerm = term.trim();
+
+      if (trimmedTerm.length === 0) {
+        setSearchedPokemon(null);
+        setSearchError(null);
+        setIsSearching(false);
+        return;
+      }
+
+      const isValidSearchTerm = trimmedTerm.length >= 3 &&
+        /^[a-zA-Z]+$/.test(trimmedTerm);
+      const localMatches = pokemons.filter(p =>
+        p.name.toLowerCase().includes(trimmedTerm.toLowerCase())
+      );
+
+      if (localMatches.length > 0) {
+        setSearchedPokemon(null);
+        setSearchError(null);
+        setIsSearching(false);
+        return;
+      }
+
+      if (isValidSearchTerm) {
+        setIsSearching(true);
+        fetchPokemonDetails(trimmedTerm)
+          .then(data => {
+            setSearchedPokemon(data);
+            setSearchError(null);
+          })
+          .catch(error => {
+            if (error.response && error.response.status === 404) {
+              setSearchError(`Pokémon "${trimmedTerm}" não encontrado.`);
+            } else {
+              setSearchError(null);
+            }
+            setSearchedPokemon(null);
+          })
+          .finally(() => {
+            setIsSearching(false);
+          });
+      } else {
+        setSearchedPokemon(null);
+        setSearchError(null);
+        setIsSearching(false);
+      }
+    },
+    [pokemons, fetchPokemonDetails, setSearchedPokemon, setSearchError]
+  );
+
+  useEffect(() => {
+    if (localSearchTerm === searchTerm) return;
+
+    const timer = setTimeout(() => {
+      setSearchTerm(localSearchTerm);
+      debouncedSearch(localSearchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [localSearchTerm, debouncedSearch, setSearchTerm, searchTerm]);
 
   const handleCardClick = (pokemonName) => {
     navigate(`/pokemon/${pokemonName}`);
@@ -46,57 +112,33 @@ const HomePage = () => {
 
   const handleSearchChange = (event) => {
     const term = event.target.value;
-    setSearchTerm(term);
-    setSearchedPokemon(null);
-    setSearchError(null);
-
-  };
-
-  const handleSearchSubmit = async (event) => {
-    if (event.key !== 'Enter') return;
-
-    const term = searchTerm.toLowerCase().trim();
+    setLocalSearchTerm(term);
 
     if (term.length === 0) {
+      setSearchTerm('');
       setSearchedPokemon(null);
       setSearchError(null);
-      return;
-    }
-    const localMatch = pokemons.find(p => p.name.toLowerCase() === term);
-    if (localMatch) {
-      setSearchedPokemon(localMatch);
-      setSearchError(null);
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const data = await fetchPokemonDetails(term);
-      setSearchedPokemon(data);
-      setSearchError(null);
-    } catch (error) {
-      if (error.response && error.response.status === 404) {
-        setSearchError(`Pokémon "${term}" não encontrado.`);
-      } else {
-        setSearchError(null);
-      }
-      setSearchedPokemon(null);
-    } finally {
-      setIsLoading(false);
+      setIsSearching(false);
     }
   };
-  
-  const typesForSelect = ['all', ...ALL_TYPES]; 
+
+  const typesForSelect = ['all', ...ALL_TYPES];
 
   let pokemonsToDisplay = pokemons;
 
-  if (searchedPokemon) {
-    pokemonsToDisplay = [searchedPokemon];
-  } else if (searchTerm.length > 0) {
-    pokemonsToDisplay = pokemons.filter(pokemon =>
-      pokemon.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  if (localSearchTerm.length > 0) {
+    if (searchedPokemon) {
+      pokemonsToDisplay = [searchedPokemon];
+    } else {
+      pokemonsToDisplay = pokemons.filter(pokemon =>
+        pokemon.name.toLowerCase().includes(localSearchTerm.toLowerCase())
+      );
+    }
   }
 
+  const showLoading = isLoading || isSearching;
+  const showNoResults = localSearchTerm.length > 0 && pokemonsToDisplay.length === 0 && !showLoading && !searchError;
+  const showSearchError = searchError && localSearchTerm.length > 0;
 
   return (
     <Container>
@@ -105,11 +147,10 @@ const HomePage = () => {
         <SearchContainer>
           <SearchInput
             type="text"
-            placeholder="Buscar Pokémon pelo nome..."
-            value={searchTerm}
+            placeholder="Buscar Pokémon pelo nome... (mín. 3 letras)"
+            value={localSearchTerm}
             onChange={handleSearchChange}
-            onKeyDown={handleSearchSubmit}
-            disabled={isLoading && !searchedPokemon}
+            disabled={showLoading}
           />
         </SearchContainer>
         <TypeSelectWrapper $typeColor={selectedTypeColor}>
@@ -118,20 +159,20 @@ const HomePage = () => {
             value={selectedType || 'all'}
             $typeColor={selectedTypeColor}
           >
-            {typesForSelect.map((type) => { 
+            {typesForSelect.map((type) => {
               if (type === 'all') {
                 return (
                   <TypeOption
                     key="all"
                     value="all"
-                    $bgColor="#ffffff" 
-                    $textColor="#000000" 
+                    $bgColor="#ffffff"
+                    $textColor="#000000"
                   >
                     All
                   </TypeOption>
                 );
               }
-              
+
               const color = TYPE_COLORS[type];
               const textColor = isLightColor(color) ? '#000000' : '#ffffff';
               return (
@@ -148,19 +189,23 @@ const HomePage = () => {
           </TypeSelect>
         </TypeSelectWrapper>
       </FilterBarContainer>
-      {isLoading && pokemonsToDisplay.length === 0 && (
-        <MessageParagraph>Carregando...</MessageParagraph>
+
+      {showLoading && pokemonsToDisplay.length === 0 && (
+        <MessageParagraph>Buscando...</MessageParagraph>
       )}
 
-      {searchError && (
+      {showSearchError && (
         <MessageParagraph>
           {searchError}
         </MessageParagraph>
       )}
 
-      {searchTerm.length > 0 && pokemonsToDisplay.length === 0 && !isLoading && !searchError && (
+      {showNoResults && (
         <MessageParagraph>
-          Nenhum Pokémon encontrado que corresponda aos critérios de busca.
+          {localSearchTerm.length < 3 ?
+            "Digite pelo menos 3 letras para buscar na API." :
+            "Nenhum Pokémon encontrado."
+          }
         </MessageParagraph>
       )}
 
@@ -173,7 +218,8 @@ const HomePage = () => {
           />
         ))}
       </PokemonGrid>
-      {hasMore && searchTerm.length === 0 && (
+
+      {hasMore && localSearchTerm.length === 0 && !searchedPokemon && (
         <LoadMoreButton onClick={handleLoadMore} disabled={isLoading}>
           <img src={LoadingPokemon} alt='Buttom Loading' />
         </LoadMoreButton>
