@@ -1,10 +1,7 @@
-// src/App.jsx
-
-import { BrowserRouter, Routes, Route } from 'react-router-dom'; 
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProviderComponent } from './context/ThemeContext.jsx'; 
 import GlobalStyle from './styles/GlobalStyles.js'; 
 
-// 🎯 IMPORTAÇÕES NECESSÁRIAS
 import isPropValid from '@emotion/is-prop-valid';
 import { StyleSheetManager } from 'styled-components';
 
@@ -17,7 +14,7 @@ const shouldForwardProp = (prop) => {
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
         <StyleSheetManager shouldForwardProp={shouldForwardProp}> 
             <ThemeProviderComponent>
                 <GlobalStyle /> 
@@ -28,7 +25,7 @@ function App() {
                 </Routes>
             </ThemeProviderComponent>
         </StyleSheetManager>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
