@@ -119,7 +119,7 @@ export const TypeSelect = styled.select`
     cursor: pointer;
     background-color: ${props => props.$typeColor || props.theme.cardBackground};
     border: 2px solid ${props => props.$typeColor || props.theme.primary};
-    color: ${props => props.$typeColor ? props.theme.white : props.theme.text};
+    color: ${props => props.theme.text};
     appearance: none;
 `;
 

@@ -1,5 +1,3 @@
-// src/hooks/usePokemonData.js
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     getPokemonList,
@@ -45,6 +43,7 @@ export const usePokemonData = () => {
 
                 const start = offset;
                 const end = offset + POKEMONS_PER_PAGE;
+                currentFilteredUrls = currentFilteredUrls || [];
                 listDataResults = currentFilteredUrls.slice(start, end);
 
                 const nextOffsetValue = end;
@@ -110,6 +109,49 @@ export const usePokemonData = () => {
         fetchPokemons(0, null, controller);
         return () => controller.abort();
     }, []);
+    useEffect(() => {
+        if (!searchTerm) {
+            setSearchedPokemon(null);
+            setSearchError(null);
+            return;
+        }
+        if (controllerRef.current) {
+            controllerRef.current.abort();
+        }
+
+        const searchController = new AbortController();
+        
+        const fetchSearch = async () => {
+            setIsLoading(true);
+            try {
+                setSearchError(null);
+                setSearchedPokemon(null);
+                const details = await fetchPokemonDetails(searchTerm, { 
+                    signal: searchController.signal 
+                });
+
+                setSearchedPokemon(details);
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                
+                setSearchedPokemon(null);
+                if (error.response && error.response.status === 404) {
+                    setSearchError(`Pokémon "${searchTerm}" não encontrado.`);
+                } else {
+                    console.error("Failed to fetch searched pokemon:", error);
+                    setSearchError("Erro desconhecido ao buscar Pokémon.");
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchSearch();
+        return () => searchController.abort();
+    }, [searchTerm]);
+
 
     const handleLoadMore = () => {
         fetchPokemons(nextOffset, selectedType, controllerRef.current);

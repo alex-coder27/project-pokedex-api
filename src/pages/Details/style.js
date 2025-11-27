@@ -60,7 +60,10 @@ export const MainContent = styled.main`
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 `;
 
-export const DetailTitle = styled.h2`
+// 🟢 CORRIGIDO: Filtra $typeColor
+export const DetailTitle = styled.h2.withConfig({
+    shouldForwardProp: (prop) => !prop.startsWith('$'),
+})`
     color: ${props => props.$typeColor || props.theme.primary};
     border-bottom: 2px solid ${props => props.$typeColor || props.theme.primary}50;
     padding-bottom: 5px;
@@ -86,7 +89,10 @@ export const StatContainer = styled.div`
     }
 `;
 
-export const StatBar = styled.div`
+// 🟢 CORRIGIDO: Filtra $statValue e $typeColor
+export const StatBar = styled.div.withConfig({
+    shouldForwardProp: (prop) => !prop.startsWith('$'),
+})`
     flex: 1;
     height: 12px;
     background-color: ${props => props.theme.backgroundContainer};
@@ -98,9 +104,10 @@ export const StatBar = styled.div`
         content: '';
         display: block;
         height: 100%;
-        width: ${props => `${(props.value / 255) * 100}%`};
+        /* CORRIGIDO: Usa a prop $statValue (do index.jsx) e a $typeColor */
+        width: ${props => `${(props.$statValue / 255) * 100}%`}; 
         max-width: 100%;
-        background-color: ${props => props.theme.primary};
+        background-color: ${props => props.$typeColor || props.theme.primary};
         transition: width 1s ease-out;
     }
 `;
@@ -125,7 +132,10 @@ export const TypeContainer = styled.div`
     flex-wrap: wrap;
 `;
 
-export const TypeItem = styled.span`
+// 🟢 CORRIGIDO: Filtra $typeColor
+export const TypeItem = styled.span.withConfig({
+    shouldForwardProp: (prop) => !prop.startsWith('$'),
+})`
     background-color: ${props => props.$typeColor || props.theme.primary};
     color: ${props => props.theme.text};
     padding: 8px 15px;
@@ -156,7 +166,10 @@ export const AbilityList = styled.ul`
     gap: 10px;
 `;
 
-export const AbilityItem = styled.li`
+// 🟢 CORRIGIDO: Filtra $isHidden
+export const AbilityItem = styled.li.withConfig({
+    shouldForwardProp: (prop) => !prop.startsWith('$'),
+})`
     background-color: ${props => props.theme.primary}1A;
     color: ${props => props.theme.text};
     padding: 8px 15px;

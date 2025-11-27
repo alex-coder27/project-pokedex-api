@@ -84,6 +84,8 @@ const HomePage = () => {
       setIsLoading(false);
     }
   };
+  
+  const typesForSelect = ['all', ...ALL_TYPES]; 
 
   let pokemonsToDisplay = pokemons;
 
@@ -116,7 +118,20 @@ const HomePage = () => {
             value={selectedType || 'all'}
             $typeColor={selectedTypeColor}
           >
-            {ALL_TYPES.map((type) => {
+            {typesForSelect.map((type) => { 
+              if (type === 'all') {
+                return (
+                  <TypeOption
+                    key="all"
+                    value="all"
+                    $bgColor="#ffffff" 
+                    $textColor="#000000" 
+                  >
+                    All
+                  </TypeOption>
+                );
+              }
+              
               const color = TYPE_COLORS[type];
               const textColor = isLightColor(color) ? '#000000' : '#ffffff';
               return (

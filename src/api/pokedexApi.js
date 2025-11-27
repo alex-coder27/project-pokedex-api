@@ -1,4 +1,4 @@
-import axios from 'axios'; 
+import axios from 'axios';
 const BASE_URL = "https://pokeapi.co/api/v2";
 
 export const getPokemonList = async (offset = 0, limit = 10, options = {}) => {
